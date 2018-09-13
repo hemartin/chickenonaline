@@ -1,4 +1,5 @@
 *.zip
+*.png
 col.js
 todo.txt
 .DS_Store
