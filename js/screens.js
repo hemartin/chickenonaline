@@ -1,186 +1,239 @@
-/*
- * Screens are separate state's in the game's state machine.
- * 
+import { BodyWithEyes } from './bodywitheyes.js'
+import { Button } from './button.js'
+import * as Constants from './constants.js'
+import { GameState } from './gamestate.js'
+
+/**
  * When the game first loads, a splash screen is shown. From there,
- * the play goes to the "get ready" screen and then on the to the
+ * it goes into the "get ready" screen and then on the to the
  * game screen where the actual game play happens. Finally, there is
  * a "end of round" screen.
- * 
- * @author Martin Hentschel, @hemasail
+ *
+ * @author Martin Hentschel
  */
+class Screen {
+  constructor (session) {
+    this.session = session
+  }
 
-function SplashScreen(game) {
-    this.game = game;
-    this.startButton = new Button(this.game, "Start");
-    this.startButton.origin.y = -0.25;
+  draw () {
+    // override
+  }
+
+  onClick (click) {
+    // override if necessary
+    return this
+  }
+
+  onMouseDown (click) {
+    // override if necessary
+  }
+
+  onMouseUp (click) {
+    // override if necessary
+  }
+
+  onMouseMove (click) {
+    // override if necessary
+  }
+
+  restartGame () {
+    this.session.gameState = new GameState()
+    this.session.runGame()
+    return new GamePlayScreen(this.session)
+  }
 }
 
-SplashScreen.prototype.draw = function() {
-    var chicken = new Body(this)
-        .setOrigin(-0.3, 0.15)
-        .setDimension(0.2, 0.2)
-        .setAngle(Math.random() * 0.6 - 0.3)
-        .finalize();
+export class SplashScreen extends Screen {
+  constructor (session) {
+    super(session)
+    this.startButton = new Button('Start')
+    this.startButton.origin.y = -0.25
+  }
 
-    drawGame(this.game, false, false);
-    drawChicken(this.game, chicken, COLORS);
-    drawTextAlign(this.game, "Chicken",   -0.14, 0.16, 0.13,  FONT_ALIGN_LEFT);
-    drawTextAlign(this.game, "On A Line", -0.14, 0.05, 0.13, FONT_ALIGN_LEFT);
-    drawText(this.game, "swipe to balance, click to jump, " + WIN_SCORE + " points to win", 0, -0.14, 0.035);
-    drawButton(this.game, this.startButton);
-};
+  draw () {
+    const chicken = new BodyWithEyes(this)
+      .setOrigin(-0.3, 0.15)
+      .setDimension(0.2, 0.2)
+      .setAngle(Math.random() * 0.6 - 0.3)
+      .finalize()
 
-SplashScreen.prototype.onClick = function(click) {
-    if (this.startButton.clicked(click))
-    {
-        runGame(this.game);
-        return new GamePlayScreen(this.game);
+    this.session.graphics.drawGame(this.session, false, false)
+    this.session.graphics.drawChicken(chicken, Constants.COLORS)
+    this.session.graphics.drawTextAlign(
+      'Chicken',
+      -0.14,
+      0.16,
+      0.13,
+      Constants.FONT_ALIGN_LEFT
+    )
+    this.session.graphics.drawTextAlign(
+      'On A Line',
+      -0.14,
+      0.05,
+      0.13,
+      Constants.FONT_ALIGN_LEFT
+    )
+    this.session.graphics.drawText(
+      'swipe to balance, click to jump, ' +
+        Constants.WIN_SCORE +
+        ' points to win',
+      0,
+      -0.14,
+      0.035
+    )
+    this.session.graphics.drawButton(this.startButton)
+  }
+
+  onClick (click) {
+    if (this.startButton.clicked(click)) {
+      this.session.runGame(this.session)
+      return new GamePlayScreen(this.session)
     }
-    return this;
-};
+    return this
+  }
 
-SplashScreen.prototype.onMouseDown = function(click) {
-    this.startButton.down(click);
-};
+  onMouseDown (click) {
+    this.startButton.down(click)
+  }
 
-SplashScreen.prototype.onMouseUp = function(click) {
-    this.startButton.up(click);
-};
-
-SplashScreen.prototype.onMouseMove = function(click) {
-    // do nothing
-};
-
-
-function GamePlayScreen(game) {
-    this.game = game;
-    this.before = 0;
+  onMouseUp (click) {
+    this.startButton.up(click)
+  }
 }
 
-GamePlayScreen.prototype.draw = function() {
-    drawGame(this.game, true, false);
-};
+export class GamePlayScreen extends Screen {
+  constructor (session) {
+    super(session)
+    this.before = 0
+  }
 
-GamePlayScreen.prototype.onClick = function(click) {
-    return this;
-};
+  draw () {
+    this.session.graphics.drawGame(this.session, true, false)
+  }
 
-GamePlayScreen.prototype.onMouseMove = function(click) {
+  onClick (click) {
+    return this
+  }
+
+  onMouseMove (click) {
     if (click.y > -0.25) {
-        click.y = -0.25;
+      click.y = -0.25
     }
-    this.game.state.handle.set(click);
-    return this;
-};
+    this.session.gameState.handle.set(click)
+    return this
+  }
 
-GamePlayScreen.prototype.onMouseDown = function(click) {
-    this.before = Date.now();
-};
+  onMouseDown (click) {
+    this.before = Date.now()
+  }
 
-GamePlayScreen.prototype.onMouseUp = function(click) {
-    var secs = (Date.now() - this.before) / 1000;
-    this.game.state.jump(secs);
-};
-
-
-function EndOfRoundScreen(game) {
-    this.dy = 0.15;
-    this.game = game;
-    this.newMultiplier = this.game.multiplier + 1;
-    this.resetButton = new Button(this.game, "1x Reset");
-    this.resetButton.origin.x = -0.22;
-    this.resetButton.origin.y = -0.25;
-    this.riskButton = new Button(this.game, this.newMultiplier + "x Risk");
-    this.riskButton.origin.x = 0.22;
-    this.riskButton.origin.y = -0.25;
+  onMouseUp (click) {
+    const secs = (Date.now() - this.before) / 1000
+    this.session.gameState.jump(secs)
+  }
 }
 
-EndOfRoundScreen.prototype.draw = function() {
-    drawGame(this.game, true, true);
-    drawText(this.game, "Good Round", 0, this.dy - 0.08, 0.14);
-    drawText(this.game, "round's score " + this.game.roundScore,
-             0, this.dy - 0.15, 0.05);
-    drawButton(this.game, this.resetButton);
-    drawButton(this.game, this.riskButton);
-    drawText(
-        this.game,
-        "Beat " + this.game.state.runTimeStr + "s or game over",
-        0.22, -0.34, 0.03);
-};
+export class EndOfRoundScreen extends Screen {
+  constructor (session) {
+    super(session)
+    this.dy = 0.15
+    this.session = session
+    this.newMultiplier = this.session.multiplier + 1
+    this.resetButton = new Button('1x Reset')
+    this.resetButton.origin.x = -0.22
+    this.resetButton.origin.y = -0.25
+    this.riskButton = new Button(this.newMultiplier + 'x Risk')
+    this.riskButton.origin.x = 0.22
+    this.riskButton.origin.y = -0.25
+  }
 
-EndOfRoundScreen.prototype.onClick = function(click) {
+  draw () {
+    this.session.graphics.drawGame(this.session, true, true)
+    this.session.graphics.drawText('Good Round', 0, this.dy - 0.08, 0.14)
+    this.session.graphics.drawText(
+      "round's score " + this.session.roundScore,
+      0,
+      this.dy - 0.15,
+      0.05
+    )
+    this.session.graphics.drawButton(this.resetButton)
+    this.session.graphics.drawButton(this.riskButton)
+    this.session.graphics.drawText(
+      'Beat ' + this.session.gameState.runTimeStr + 's or game over',
+      0.22,
+      -0.34,
+      0.03
+    )
+  }
+
+  onClick (click) {
     if (this.resetButton.clicked(click)) {
-        this.game.multiplier = 1;
-        this.game.lastRunTimeStr = '0.0';
-        return restartGame(this.game);
+      this.session.multiplier = 1
+      this.session.lastRunTimeStr = '0.0'
+      return this.restartGame()
     }
     if (this.riskButton.clicked(click)) {
-        this.game.multiplier = this.game.multiplier + 1;
-        this.game.lastRunTimeStr = this.game.state.runTimeStr;
-        return restartGame(this.game);
+      this.session.multiplier = this.session.multiplier + 1
+      this.session.lastRunTimeStr = this.session.gameState.runTimeStr
+      return this.restartGame()
     }
-    return this;
-};
+    return this
+  }
 
-EndOfRoundScreen.prototype.onMouseDown = function(click) {
-    this.resetButton.down(click);
-    this.riskButton.down(click);
-};
+  onMouseDown (click) {
+    this.resetButton.down(click)
+    this.riskButton.down(click)
+  }
 
-EndOfRoundScreen.prototype.onMouseUp = function(click) {
-    this.resetButton.up(click);
-    this.riskButton.up(click);
-};
-
-EndOfRoundScreen.prototype.onMouseMove = function(click) {
-    // do nothing
-};
-
-
-function GameOverScreen(game, beatHighscore, win) {
-    this.dy = 0.15;
-    this.game = game;
-    this.headline = (win) ? "Chicken Dinner!" : "Game Over";
-    this.subline = (beatHighscore) ? "new highscore " : "final score ";
-    this.startButton = new Button(this.game, "Start");
-    this.startButton.origin.y = -0.25;
+  onMouseUp (click) {
+    this.resetButton.up(click)
+    this.riskButton.up(click)
+  }
 }
 
-GameOverScreen.prototype.draw = function() {
-    drawGame(this.game, true, true);
-    drawText(this.game, this.headline, 0, this.dy - 0.08, 0.14);
-    drawText(this.game, this.subline + this.game.score,
-             0, this.dy - 0.15, 0.05);
-    drawButton(this.game, this.startButton);
-};
+export class GameOverScreen extends Screen {
+  constructor (session, beatHighscore, win) {
+    super(session)
+    this.dy = 0.15
+    this.headline = win ? 'Chicken Dinner!' : 'Game Over'
+    this.subline = beatHighscore ? 'new highscore ' : 'final score '
+    this.startButton = new Button('Start')
+    this.startButton.origin.y = -0.25
+  }
 
-GameOverScreen.prototype.onClick = function(click) {
+  draw () {
+    this.session.graphics.drawGame(this.session, true, true)
+    this.session.graphics.drawText(this.headline, 0, this.dy - 0.08, 0.14)
+    this.session.graphics.drawText(
+      this.subline + this.session.score,
+      0,
+      this.dy - 0.15,
+      0.05
+    )
+    this.session.graphics.drawButton(this.startButton)
+  }
+
+  onClick (click) {
     if (this.startButton.clicked(click)) {
-        this.game.lastRunTimeStr = '0.0';
-        this.game.roundScore = 0;
-        this.game.score = 0;
-        this.game.multiplier = 1;
-        return restartGame(this.game);
+      this.session.lastRunTimeStr = '0.0'
+      this.session.roundScore = 0
+      this.session.score = 0
+      this.session.multiplier = 1
+      return this.restartGame()
     }
-    return this;
-};
+    return this
+  }
 
-GameOverScreen.prototype.onMouseDown = function(click) {
-    this.startButton.down(click);
-};
+  onMouseDown (click) {
+    this.startButton.down(click)
+  }
 
-GameOverScreen.prototype.onMouseUp = function(click) {
-    this.startButton.up(click);
-};
+  onMouseUp (click) {
+    this.startButton.up(click)
+  }
 
-GameOverScreen.prototype.onMouseMove = function(click) {
+  onMouseMove (click) {
     // do nothing
-};
-
-function restartGame(game) {
-    var state = new State();
-    state.init();
-    game.state = state;
-    runGame(game);
-    return new GamePlayScreen(game);
+  }
 }
